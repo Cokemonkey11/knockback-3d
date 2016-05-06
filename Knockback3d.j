@@ -1,6 +1,6 @@
 
 /**
- * Knockback3D by Cokemonkey11, a projectile motion emulator for unit knockback effects.
+ * Knockback3D by Cokemonkey11, a projectile motion emulator for unit knockback.
  *
  * Requirements:
  *      Optional IsDestructableTree
@@ -38,193 +38,133 @@
  *          on the XY plan and c on the Z axis.
  */
 library Knockback3D uses optional IsDestructableTree, /*
-    */ optional IsTerrainWalkable, optional TerrainPathability
+                      */ optional IsTerrainWalkable,  /*
+                      */ optional TerrainPathability
 
-    // <<===========================================================================================
+    // =========================================================================
     // Begin Customizable Section
-    // <<===========================================================================================
+    // =========================================================================
     globals
-        /**
-         * Defines whether units should have their movespeed set to 0 and then back to "default"
-         * speed. If false, units in mid air can still fully control themselves. Warning: This is
-         * not a lock-safe crowd-control implementation.
-         */
+        // Defines whether units should have their movement speed set to 0 while
+        // in motion, and then later back to their "default" speed. If false,
+        // units in mid air can still fully control themselves. Warning: This is
+        // not a lock-safe crowd-control implementation.
         private constant boolean USE_MOVESPEED_MODIFIERS=true
 
-        /**
-         * Defines whether the script should check enumerated destructables as being trees or not.
-         * If enabled, will only work if IsDestructableTree library is available.
-         */
+        // Defines whether the script should check enumerated destructables as
+        // being trees or not. If enabled, will only work if IsDestructableTree
+        // library is available.
         private constant boolean USE_TREE_CHECKER=true
 
-        /**
-         * Defines whether to enumerate and destroy destructables in contact with projectile bodies.
-         */
+        // Defines whether to enumerate and destroy destructables in contact
+        // with projectile bodies.
         private constant boolean DESTROY_DESTRUCTABLES_ONHIT=true
     endglobals
 
     /**
-     * Object which holds knockback data, not to be modified by the client.
+     * Object which holds both static and instance knockback data. Not to be
+     * modified except in designated CUSTOMIZE areas.
      */
     struct Knockback3D
-
-        /**
-         * A parameter for controlling the system clock, in seconds. 1/30 runs 30 times per second.
-         */
+        // A parameter for controlling the system clock, in seconds. 1/30 runs
+        // 30 times per second.
         private static constant real CLOCK_PERIOD=1./30.
 
-        /**
-         * A measure of velocity retention after colliding with ground. 0.4 means 40% retention.
-         */
+        // A measure of velocity retention after colliding with ground. 0.4
+        // means 40% retention.
         private static constant real COEFF_RESTITUTION_GROUND=.4
 
-        /**
-         * How much velocity should be retained after hitting a destructable. A value of .3 means
-         * 30% velocity is retained.
-         */
+        // How much velocity should be retained after hitting a destructable. A
+        // value of .3 means 30% velocity is retained.
         private static constant real COEFF_RESTITUTION_DSTRBL=.3
 
-        /**
-         * What fraction of velocity should be lost with every iteration of ground friction. Note
-         * that simulating an abstraction of friction in units per second overflows real precision
-         * numbers. Thus, you must adjust this according to your clock period.
-         */
+        // What fraction of velocity should be lost with every iteration of
+        // ground friction. Note that simulating an abstraction of friction in
+        // units per second overflows real precision numbers. Thus, you must
+        // adjust this according to your clock period.
         private static constant real FRICTION_ITER_MULTIPLIER=.15
 
-        /**
-         * The downward acceleration of units in motion. A value of CLOCK_PERIOD*41.25 means they
-         * accelerate downwards by 41.25 game units per second.
-         */
+        // The downward acceleration of units in motion. A value of
+        // CLOCK_PERIOD*41.25 means they accelerate downwards by 41.25 units per
+        // second.
         private static constant real GRAVITY=CLOCK_PERIOD*45.
 
-        /**
-         * The minimum fall-speed for a unit to bounce. CLOCK_PERIOD*-300. means that the a unit
-         * must be falling at 300 units per second to bounce.
-         */
+        // The minimum fall-speed for a unit to bounce. CLOCK_PERIOD*-300. means
+        // that the a unit must be falling at 300 units per second to bounce.
         private static constant real MAX_Z_VELOCITY_TO_BOUNCE=CLOCK_PERIOD*-300.
 
-        /**
-         * The minimum z-velocity of a unit to actually have it's flying height changed, instead of
-         * simply sliding. Note: This may need refactoring in combination with
-         * MAX_Z_VELOCITY_TO_BOUNCE
-         */
+        // The minimum z-velocity of a unit to have it's flying height changed,
+        // instead of simply sliding.
         private static constant real MIN_Z_VELOCITY_TO_BECOME_AIRBORNE=CLOCK_PERIOD*150.
 
-        /**
-         * This is the minimum height a unit can be at before friction is applied. Recommend a value
-         * greater than 0 as floating units have a small non-zero value.
-         */
+        // This is the minimum height a unit can be at before friction is
+        // applied. A value greater than 0 is recommended as some units have a
+        // small non-zero flying height.
         private static constant real MIN_FLY_HEIGHT=5.
 
-        /**
-         * The minimum horizontal velocity a unit can be sliding before the system ignores it. A
-         * value of CLOCK_PERIOD*30 means the unit will stop sliding when its slide speed reduces
-         * past 30 units per second.
-         */
+        // The minimum horizontal velocity a unit can be sliding before the
+        // system ignores it. A value of CLOCK_PERIOD*30 means the unit will
+        // stop sliding when its slide speed reduces past 30 units per second.
         private static constant real MIN_FOR_KNOCKBACK=CLOCK_PERIOD*30.
 
-        /**
-         * The minimum speed a sliding unit must be moving to spawn a "friction" special effect. A
-         * value of CLOCK_PERIOD*180 means the effect is applied while units are moving faster than
-         * 180 game units per second.
-         */
+        // The minimum speed a sliding unit must be moving to spawn a "friction"
+        // effect. A value of CLOCK_PERIOD*180 means the effect is applied while
+        // units are moving faster than 180 units per second.
         private static constant real MIN_SPEED_FRICTION_FX=CLOCK_PERIOD*180.
 
-        /**
-         * The model to spawn when a unit's horizontal velocity > MIN_SPEED_FRICTION_FX
-         */
+        // The effect model to spawn when a unit's horizontal velocity is
+        // greater than MIN_SPEED_FRICTION_FX .
         private static constant string FRICTION_MODEL="Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
 
-        /**
-         * The square size to search for destructables when destroying them. Note that a square's
-         * diagonal is Sqrt(2) times bigger than this.
-         */
+        // The square size to search for destructables when destroying them.
+        // Note that a square's diagonal is Sqrt(2) times bigger than this.
         private static constant real DESTRUCTABLE_ENUM_RADIUS=130.
 
-        /**
-         * This is the minimum horizontal velocity a unit must have to destroy a destructable. You
-         * can set this to a very high number to disable the feature. A value of CLOCK_PERIOD*300
-         * means the unit must travel at 300 units per second on the XY plane, to destroy obstacles.
-         */
+        // The minimum horizontal velocity a unit must have to destroy a
+        // destructable. You can set this to a very high number to disable the
+        // feature. A value of CLOCK_PERIOD*300 means the unit must travel at
+        // 300 units per second on the XY plane, to destroy obstacles.
         private static constant real MIN_VEL_DESTROY_DESTRUCTABLE=CLOCK_PERIOD*300.
 
-        /**
-         * The height below which a unit in the stack is elligible to destroy a destructable.
-         * Ideally it should be the average height of your destructables.
-         */
+        // The height below which a flying unit is elligible to destroy
+        // destructables. Ideally it should be the maximum height of your
+        // destructables.
         private static constant real MAX_HEIGHT_DESTROY_DESTRUCTABLE=150.
 
-        // =======================================================================================>>
+        // =====================================================================
         // End Customizable Section
-        // =======================================================================================>>
+        // =====================================================================
 
-        /**
-         * The raw ID of crow form, which allows ground units to have adjusted fly-height.
-         */
         private static constant integer CROW_ID='Arav'
 
-        /**
-         * Flag used for reference when a destructable has been hit/destroyed.
-         */
-        private static boolean hitDestructable
-
-        /**
-         * A stack size reference
-         */
+        // A stack size counter.
         private static integer dbIndex=-1
 
-        /**
-         * Stack of KnockDat references
-         */
+        // Stack of knockback data blobs.
         private static thistype array knockDB
 
-        /**
-         * Temp object for the getZ shim
-         */
+        // Movable location for the getZ shim.
         private static location zLoc=Location(0.,0.)
 
-        /**
-         * A reference to the map's minimum x co-ordinate
-         */
+        // Copies of map boundary co-ordinates.
         private static real mapMinX
-
-        /**
-         * A reference to the map's maximum x co-ordinate
-         */
         private static real mapMaxX
-
-        /**
-         * A reference to the map's minimum y co-ordinate
-         */
         private static real mapMinY
-
-        /**
-         * A reference to the map's maximum y co-ordinate
-         */
         private static real mapMaxY
 
-        /**
-         * A static rect used to enumerate destructables
-         */
+        // Used to enumerate destructables.
         private static rect destructableRect
 
-        /**
-         * The static system clock
-         */
         private static timer clock=CreateTimer()
 
 
-        /**
-         * A simple shim for getting the z heigh of a co-ordinate pair.
-         */
+        // For getting the z-height of a co-ordinate pair.
         private static method getZ takes real x, real y returns real
             call MoveLocation(zLoc,x,y)
             return GetLocationZ(zLoc)
         endmethod
 
-        /**
-         * The callback function when enumerating destructables
-         */
+        // The callback function when enumerating destructables.
         private static method destructableCallback takes nothing returns nothing
             local destructable des=GetEnumDestructable()
             if GetDestructableLife(des)>0. then
@@ -242,9 +182,7 @@ library Knockback3D uses optional IsDestructableTree, /*
             set des=null
         endmethod
 
-        /**
-         * The periodic function which iterates through all objects in flight
-         */
+        // The periodic function which iterates through all objects in flight.
         private static method p takes nothing returns nothing
             local boolean newInMap
             local integer index=0
@@ -331,15 +269,14 @@ library Knockback3D uses optional IsDestructableTree, /*
             endloop
         endmethod
 
-        /**
-         * Gets the unit's stack index using linear search. Adding optional Table could potentially be
-         * useful.
-         */
+        // Get a unit's stack index.
         private static method getUnitIndexFromStack takes unit u returns integer
             local integer index=0
             local integer returner=-1
             local thistype tempDat
             loop
+                // A potential future improvement would be to use optional Table
+                // instead of linear search.
                 exitwhen index>dbIndex or returner!=-1
                 set tempDat=knockDB[index]
                 if tempDat.u==u then
@@ -350,9 +287,6 @@ library Knockback3D uses optional IsDestructableTree, /*
             return returner
         endmethod
 
-        /**
-         * Initialization function
-         */
         private static method onInit takes nothing returns nothing
             set destructableRect=Rect(-1*DESTRUCTABLE_ENUM_RADIUS,-1*DESTRUCTABLE_ENUM_RADIUS,DESTRUCTABLE_ENUM_RADIUS,DESTRUCTABLE_ENUM_RADIUS)
             set mapMinX=GetRectMinX(bj_mapInitialPlayableArea)
@@ -445,26 +379,14 @@ library Knockback3D uses optional IsDestructableTree, /*
         endmethod
 
 
+        // Instance Variables.
 
-        // Instance Variables
-        /**
-         * The unit being knocked back
-         */
+        // The unit being knocked back.
         private unit u
 
-        /**
-         * The knockback vector's x-component
-         */
+        // The knockback vector's x, y, and z components.
         private real delX
-
-        /**
-         * The knockback vector's y-component
-         */
         private real delY
-
-        /**
-         * The knockback vector's z-component
-         */
         private real delZ
     endstruct
 endlibrary
