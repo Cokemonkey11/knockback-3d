@@ -13,7 +13,7 @@ scope test initializer i
         set u=null
         return false
     endfunction
-    
+
     private function i takes nothing returns nothing
         local trigger t=CreateTrigger()
         call FogMaskEnable(false)
