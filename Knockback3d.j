@@ -4,13 +4,13 @@
  *
  * Requirements:
  *      Optional IsDestructableTree
- *          Supports both PitzerMike's ([url]http://goo.gl/zZHhGc[/url]) and BPower's ([url]http://goo.gl/jGYFQK[/url])
+ *          Supports both PitzerMike's (http://goo.gl/zZHhGc) and BPower's (http://goo.gl/jGYFQK)
  *          implementation. Use one or none.
  *
  *      IsTerrainWalkable or TerrainPathability
  *          To more accurately detect collisions, you must have either IsTerrainWalkable by Anitarf
- *          and Vexorian ([url]http://goo.gl/bf1wpN[/url]) OR TerrainPathability by Rising_Dusk
- *          ([url]http://goo.gl/UTzPdG[/url]).
+ *          and Vexorian (http://goo.gl/bf1wpN) OR TerrainPathability by Rising_Dusk
+ *          (http://goo.gl/UTzPdG).
  *
  * API:
  *      constant boolean USE_MOVESPEED_MODIFIERS - Prevent a unit from moving while airborne
