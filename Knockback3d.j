@@ -516,7 +516,3 @@ function Knockback3D_updateMapArea takes rect r returns nothing
     debug call BJDebugMsg("Warning: Knockback3D_updateMapArea() called. Use " + /*
         */ "Knockback3D.updateMapArea() instead.")
 endfunction
-
-// <================================================================================================
-// ==================================End of Knockback3D=============================================
-// ================================================================================================>
