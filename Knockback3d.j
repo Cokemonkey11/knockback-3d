@@ -301,6 +301,9 @@ library Knockback3D uses optional IsDestructableTree, /*
                     static if USE_MOVESPEED_MODIFIERS then
                         call SetUnitMoveSpeed(tempDat.u,0)
                     endif
+                else
+                    set tempDat.delX=0
+                    set tempDat.delY=0
                 endif
                 if velXY<MIN_FOR_KNOCKBACK and tempDat.delZ>MAX_Z_VELOCITY_TO_BOUNCE and tempDat.delZ<-1*MAX_Z_VELOCITY_TO_BOUNCE and flyHeight<MIN_FLY_HEIGHT then
                     set knockDB[index]=knockDB[dbIndex]
