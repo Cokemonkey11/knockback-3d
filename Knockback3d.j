@@ -137,6 +137,8 @@ library Knockback3D uses optional IsDestructableTree, /*
 
         private static constant integer CROW_ID='Arav'
 
+        private static boolean hitDestructable
+
         // A stack size counter.
         private static integer dbIndex=-1
 
