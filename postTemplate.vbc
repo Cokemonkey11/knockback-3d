@@ -548,12 +548,13 @@ endscope
 [/jass]
 [/hidden]
 
-[color=#CCAA00][b]Maintanence and Contributions[/b][/color]
+[color=#CCAA00][b]Maintenance and Contributions[/b][/color]
 
 This script is maintained on [url=https://github.com/Cokemonkey11/knockback-3d]GitHub[/url]. I am happy to accept well-formed pull requests that fix issues. For new features, please discuss in a GitHub issue or here in this thread.
 
 [color=#CCAA00][b]Change Log[/b][/color]
 
+[b]2016.05.08[/b] - Fix an accidentally removed line.
 [b]2016.05.06[/b] - Fix out of bounds bug as demonstrated by ZiBitheWand3r3r.
 [b]2014.05.07[/b] - Now supports optional tree recognition, now supports the TerrainPathability library as an optional replacement for IsTerrainWalkable, documentation improvements and refactorings, fixed some logic issues
 [b]2012.06.09[/b] - Replaced the "power" argument with "velocity". Initial vector is now calculated based on FIDELITY, and therefore you can use a velocity value in game units per second. Updated the add API to make sure the client understands which angles it references, and added a comment to remind them the script is for [b]radians[/b].
